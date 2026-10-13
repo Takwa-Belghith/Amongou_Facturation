@@ -1,0 +1,71 @@
+{
+ "seller": {
+  "name": "Amongout Pâtisserie",
+  "owner": "Fatma Belguith",
+  "mf": "1954261G",
+  "addr": "Route de l'Ain - Km 2,5",
+  "tel": "44905009",
+  "mail": "Amongout2019@gmail.com",
+  "ig": "@amongout_"
+ },
+ "catalog": [
+  {
+   "id": 1,
+   "name": "Gâteau",
+   "price": 55
+  },
+  {
+   "id": 1790876278831,
+   "name": "pizza",
+   "price": 2.5
+  },
+  {
+   "id": 1790876288313,
+   "name": "danouni",
+   "price": 5
+  }
+ ],
+ "history": [
+  {
+   "id": 1790853793017,
+   "num": "0001/2026",
+   "date": "2026-10-01",
+   "client": "naima",
+   "cmf": "19254789",
+   "lines": [
+    {
+     "name": "Gâteau",
+     "qty": "1",
+     "price": 55
+    },
+    {
+     "name": "pizza",
+     "qty": "10",
+     "price": 2.5
+    },
+    {
+     "name": "danouni",
+     "qty": "5",
+     "price": 5
+    }
+   ],
+   "timbre": 1
+  }
+ ],
+ "counter": 6,
+ "cur": {
+  "id": 1790876353356,
+  "num": "0006/2026",
+  "date": "2026-10-01",
+  "client": "",
+  "cmf": "",
+  "lines": [
+   {
+    "name": "",
+    "qty": 1,
+    "price": 0
+   }
+  ],
+  "timbre": 1
+ }
+}

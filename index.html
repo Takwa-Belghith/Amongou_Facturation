@@ -107,18 +107,6 @@ details summary{cursor:pointer;font-weight:600}
    </details>
   </div>
 
-  <div class="card">
-   <details>
-    <summary>Synchronisation GitHub (accès depuis n'importe où)</summary>
-    <div style="margin-top:10px">
-     <div class="row"><label>Dépôt (utilisateur/nom)<input id="g_repo" placeholder="moncompte/amongout-data" autocapitalize="off"></label><label>Fichier de données<input id="g_path" placeholder="amongout-data.json" autocapitalize="off"></label></div>
-     <div class="row"><label>Branche (optionnel)<input id="g_branch" placeholder="main" autocapitalize="off"></label><label>Jeton d'accès (token)<input id="g_token" type="password" autocomplete="off" placeholder="github_pat_…"></label></div>
-     <div class="bar"><button class="p" id="gsave">Connecter</button><button id="gpull">Récupérer</button><button id="gpush">Envoyer</button><button id="goff">Déconnecter</button></div>
-     <div id="gstat" style="font-size:13px;color:var(--mute);margin-top:8px">Non connecté. Le jeton reste uniquement dans ce navigateur.</div>
-    </div>
-   </details>
-  </div>
-
   <div class="bar" style="margin-bottom:16px">
    <button class="p" id="save">Enregistrer la facture</button>
    <button id="print">Imprimer / PDF</button>
@@ -146,28 +134,8 @@ function idb(fn,mode){return new Promise((res,rej)=>{const q=indexedDB.open('amo
  q.onsuccess=()=>{const tx=q.result.transaction('h',mode||'readonly');const o=fn(tx.objectStore('h'));tx.oncomplete=()=>res(o&&o.result);tx.onerror=()=>rej(tx.error)};q.onerror=()=>rej(q.error)})}
 async function writeFile(){if(!fh)return;try{const w=await fh.createWritable();await w.write(JSON.stringify(S,null,1));await w.close();status('Fichier « '+fh.name+' » synchronisé ✓',true)}
  catch(e){status('Écriture impossible. Cliquez sur « Reconnecter ».',false);pend=fh;fh=null;$('frec').hidden=false}}
-let gt=null,lastSync='';
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}clearTimeout(wt);wt=setTimeout(writeFile,400);clearTimeout(gt);gt=setTimeout(gPush,2500)}
-const GK='amongout-gh';let G={};try{G=JSON.parse(localStorage.getItem(GK)||'{}')}catch(e){}
-const gOn=()=>!!(G.token&&G.repo);
-const gPath=()=>G.path||'amongout-data.json';
-function gstat(t,ok){const e=$('gstat');e.textContent=t;e.style.color=ok?'var(--ok)':'var(--mute)'}
-const b64e=t=>{let r='';new TextEncoder().encode(t).forEach(c=>r+=String.fromCharCode(c));return btoa(r)};
-const b64d=t=>new TextDecoder().decode(Uint8Array.from(atob(t.replace(/\s/g,'')),c=>c.charCodeAt(0)));
-const gurl=()=>'https://api.github.com/repos/'+G.repo+'/contents/'+gPath().split('/').map(encodeURIComponent).join('/');
-const ghd=()=>({Authorization:'Bearer '+G.token,Accept:'application/vnd.github+json'});
-async function gGet(){const r=await fetch(gurl()+(G.branch?'?ref='+encodeURIComponent(G.branch):''),{headers:ghd(),cache:'no-store'});
- if(r.status===404)return null;if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();return{sha:j.sha,data:JSON.parse(b64d(j.content))}}
-async function gPush(){if(!gOn())return;const txt=JSON.stringify(S,null,1);if(txt===lastSync)return;
- try{const cur=await gGet();const body={message:'Mise à jour '+new Date().toISOString().slice(0,16).replace('T',' '),content:b64e(txt)};
-  if(cur)body.sha=cur.sha;if(G.branch)body.branch=G.branch;
-  const r=await fetch(gurl(),{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},ghd()),body:JSON.stringify(body)});
-  if(!r.ok)throw new Error('HTTP '+r.status);lastSync=txt;gstat('GitHub synchronisé ✓ ('+new Date().toLocaleTimeString()+')',true)}
- catch(e){gstat('Échec GitHub : '+e.message+' (vérifiez dépôt / jeton)',false)}}
-async function gPull(){if(!gOn())return false;
- try{const cur=await gGet();if(!cur){gstat('Fichier absent du dépôt : il sera créé à la prochaine modification.',false);return false}
-  merge(cur.data);lastSync=JSON.stringify(S,null,1);gstat('Données récupérées depuis GitHub ✓',true);return true}
- catch(e){gstat('Échec GitHub : '+e.message,false);return false}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}clearTimeout(wt);wt=setTimeout(writeFile,400)}
+
 function merge(d){S=Object.assign(S,d);if(!S.cur)S.cur=fresh();fillAll()}
 async function loadFrom(h){fh=h;pend=null;$('frec').hidden=true;
  try{const t=await(await h.getFile()).text();if(t.trim())merge(JSON.parse(t))}catch(e){status('Fichier illisible (JSON invalide ?)',false);fh=null;return}
@@ -205,7 +173,7 @@ function amountWords(m){const d=Math.floor(m/1000),f=m%1000;
  let s=words(d)+(d>1?' dinars':' dinar');if(f)s+=' et '+words(f)+(f>1?' millimes':' millime');
  return s.charAt(0).toUpperCase()+s.slice(1)+'.'}
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const BASE_UNITS=['pièce','kg','g','L','boîte','part','douzaine','plateau','sachet','m'];
+const BASE_UNITS=['pièce','kg'];
 const allUnits=()=>[...BASE_UNITS,...(S.units||[]).filter(u=>!BASE_UNITS.includes(u))];
 function unitOpts(sel){sel=sel||'';const list=allUnits();if(sel&&!list.includes(sel))list.push(sel);
  return '<option value="">Par défaut</option>'+list.map(u=>`<option value="${esc(u)}"${u===sel?' selected':''}>${esc(u)}</option>`).join('')+'<option value="__other">Autre…</option>'}
@@ -277,20 +245,7 @@ $('frec').onclick=async()=>{try{if(pend&&await pend.requestPermission({mode:'rea
 $('exp').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='amongout-data.json';a.click()};
 $('imp').onclick=()=>$('impf').click();
 $('impf').onchange=async e=>{try{merge(JSON.parse(await e.target.files[0].text()));persist();alert('Données importées.')}catch(x){alert('Fichier invalide.')}e.target.value=''};
-for(const k of['repo','path','branch','token'])$('g_'+k).value=G[k]||'';
-const gRead=()=>{G={repo:$('g_repo').value.trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,'').replace(/\/$/,''),path:$('g_path').value.trim()||'amongout-data.json',branch:$('g_branch').value.trim(),token:$('g_token').value.trim()};
- try{localStorage.setItem(GK,JSON.stringify(G))}catch(e){}};
-$('gsave').onclick=async()=>{gRead();if(!gOn()){gstat('Renseignez le dépôt et le jeton.',false);return}
- gstat('Connexion…',false);
- try{const cur=await gGet();
-  if(cur){if(confirm('Le dépôt contient déjà des données. Les charger (elles remplaceront celles de cet appareil) ?\nOK = charger · Annuler = garder cet appareil et écraser GitHub'))await gPull();else{lastSync='';await gPush()}}
-  else{lastSync='';await gPush()}}
- catch(e){gstat('Échec GitHub : '+e.message+' (vérifiez dépôt / jeton)',false)}};
-$('gpull').onclick=()=>{gRead();gPull()};
-$('gpush').onclick=()=>{gRead();lastSync='';gPush()};
-$('goff').onclick=()=>{G={};try{localStorage.removeItem(GK)}catch(e){}for(const k of['repo','path','branch','token'])$('g_'+k).value='';gstat('Déconnecté.',false)};
-if(gOn())gstat('Connecté à '+G.repo+'.',false);
-fillAll();initFile();gPull();
+fillAll();initFile();
 </script>
 </body>
 </html>

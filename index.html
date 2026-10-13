@@ -29,6 +29,7 @@ button.x{padding:4px 9px;color:var(--mute)}
 .line{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.4fr) auto;gap:6px;align-items:end;margin-bottom:8px}
 .line label{margin:0}
 .lt{font-size:12px;color:var(--mute);grid-column:1/-1;margin-top:-4px;text-align:right}
+.lt input{width:130px;display:inline-block;margin:0 0 0 6px;text-align:right}
 .scroll{overflow-x:auto}
 details summary{cursor:pointer;font-weight:600}
 .hist{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
@@ -200,8 +201,12 @@ function renderLines(){const box=$('lines');box.innerHTML='';
   <label>Qté<input data-k="qty" type="number" step="any" min="0" value="${esc(l.qty)}"></label>
   <label>Unité<select data-k="u">${unitOpts(l.u)}</select></label>
   <label>Prix (DT)<input data-k="price" type="number" step="0.001" min="0" value="${esc(l.price)}"></label>
-  <button class="x" title="Supprimer" aria-label="Supprimer la ligne">✕</button><div class="lt">Total : <b>${fmt(lineTotal(l))}</b> DT</div>`;
-  d.querySelectorAll('input').forEach(inp=>inp.oninput=()=>{l[inp.dataset.k]=inp.value;d.querySelector('.lt b').textContent=fmt(lineTotal(l));renderSheet();persist()});
+  <button class="x" title="Supprimer" aria-label="Supprimer la ligne">✕</button><div class="lt">Total (DT) — modifiable pour calculer la quantité : <input data-k="total" type="number" step="0.001" min="0" value="${lineTotal(l)/1000}"></div>`;
+  const qi=d.querySelector('[data-k=qty]'),ti=d.querySelector('[data-k=total]');
+  const syncTotal=()=>{ti.value=lineTotal(l)/1000};
+  d.querySelectorAll('input').forEach(inp=>{if(inp===ti)return;inp.oninput=()=>{l[inp.dataset.k]=inp.value;syncTotal();renderSheet();persist()}});
+  ti.oninput=()=>{const p=mil(l.price);if(!p||ti.value==='')return;const q=Math.round(mil(ti.value)/p*1000)/1000;l.qty=q;qi.value=q;renderSheet();persist()};
+  ti.onchange=syncTotal;
   d.querySelector('select').onchange=e=>{let v=e.target.value;if(v==='__other')v=askUnit()||l.u||'';l.u=v;renderLines();renderSheet();persist()};
   d.querySelector('.x').onclick=()=>{S.cur.lines.splice(i,1);if(!S.cur.lines.length)S.cur.lines.push({name:'',qty:1,price:0});renderLines();renderSheet();persist()};
   box.appendChild(d)})}
